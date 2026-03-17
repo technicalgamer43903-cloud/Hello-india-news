@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GNN: Global News Network</title>
+    <style>
+        :root {
+            --bhaskar-orange: #f58220;
+            --gaming-color: #6c5ce7;
+            --stocks-color: #00b894;
+            --cars-color: #d63031;
+            --gadgets-color: #0984e3;
+            --bg-body: #f4f7f6;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); margin: 0; transition: all 0.4s ease; }
+        
+        /* Greeting Bar */
+        #greeting-bar { background: #1a1a1a; color: #aaa; padding: 6px 5%; font-size: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; }
+        #user-greeting { color: #fff; font-weight: bold; }
+
+        /* Navbar */
+        .navbar { background: #fff; padding: 8px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 1000; }
+        .logo { font-size: 22px; font-weight: 900; color: var(--bhaskar-orange); cursor: pointer; }
+        .search-box { display: flex; align-items: center; background: #eee; border-radius: 20px; padding: 4px 12px; width: 25%; }
+        .search-box input { border: none; background: transparent; width: 100%; padding: 4px; outline: none; font-size: 13px; }
+
+        /* Ticker */
+        .ticker-wrap { background: #222; color: #fff; overflow: hidden; white-space: nowrap; padding: 6px 0; font-size: 12px; font-weight: bold; border-bottom: 2px solid var(--bhaskar-orange); }
+        .ticker-move { display: inline-block; animation: ticker 30s linear infinite; }
+        @keyframes ticker { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        /* COMPACT SPOTLIGHT SECTION */
+        .spotlight-container { padding: 15px 5%; display: none; }
+        .spotlight-grid { 
+            display: grid; 
+            grid-template-columns: 1.5fr 1fr; 
+            gap: 10px; 
+            height: 280px; /* DECREASED HEIGHT FROM 400px */
+        }
+        .spotlight-main { position: relative; border-radius: 8px; overflow: hidden; }
+        .spotlight-side { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; }
+        .spotlight-item { position: relative; border-radius: 8px; overflow: hidden; background: #000; }
+        .spotlight-item img, .spotlight-item video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+        .spotlight-text { position: absolute; bottom: 0; left: 0; padding: 12px; color: white; background: linear-gradient(transparent, rgba(0,0,0,0.9)); width: 100%; box-sizing: border-box; }
+        .spotlight-text h2 { font-size: 18px; margin: 0; }
+        .spotlight-text h4 { font-size: 14px; margin: 0; }
+        .spotlight-badge { background: var(--bhaskar-orange); padding: 2px 6px; border-radius: 3px; font-size: 9px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; display: inline-block; }
+
+        /* Category Menu */
+        .category-bar { background: #fff; border-bottom: 1px solid #ddd; padding: 0 5%; display: flex; overflow-x: auto; scrollbar-width: none; }
+        .cat-tab { padding: 12px 15px; font-weight: bold; color: #555; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: 0.3s; font-size: 14px; }
+        
+        .active-home { border-color: var(--bhaskar-orange) !important; color: var(--bhaskar-orange) !important; }
+        .active-gaming { border-color: var(--gaming-color) !important; color: var(--gaming-color) !important; }
+        .active-stocks { border-color: var(--stocks-color) !important; color: var(--stocks-color) !important; }
+        .active-cars { border-color: var(--cars-color) !important; color: var(--cars-color) !important; }
+        .active-gadgets { border-color: var(--gadgets-color) !important; color: var(--gadgets-color) !important; }
+
+        /* Preface Headers */
+        .preface-header { padding: 30px 5%; color: white; display: none; }
+        .bg-gaming { background: linear-gradient(135deg, #2d3436, var(--gaming-color)); display: block; }
+        .bg-stocks { background: linear-gradient(135deg, #2d3436, var(--stocks-color)); display: block; }
+        .bg-cars { background: linear-gradient(135deg, #2d3436, var(--cars-color)); display: block; }
+        .bg-gadgets { background: linear-gradient(135deg, #2d3436, var(--gadgets-color)); display: block; }
+
+        /* Content Grid */
+        .main-container { padding: 15px 5%; display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+        .news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .article-card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.05); }
+        .article-card img, .article-card video { width: 100%; height: 180px; object-fit: cover; }
+        .card-body { padding: 15px; }
+
+        /* Admin Trigger */
+        .admin-btn { padding: 8px 15px; background: var(--bhaskar-orange); color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; }
+        .admin-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 0 50px rgba(0,0,0,0.5); z-index: 2000; display: none; width: 320px; }
+        .admin-modal input, .admin-modal select, .admin-modal textarea { width: 100%; margin-bottom: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div id="greeting-bar">
+    <span id="user-greeting">Welcome</span>
+    <span id="live-time">00:00:00</span>
+</div>
+
+<div class="navbar">
+    <div class="logo" onclick="renderTab('Home')">hello india news</div>
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Search news..." onkeyup="handleSearch()">
+    </div>
+    <button class="admin-btn" onclick="toggleAdmin()">+ Post</button>
+</div>
+
+<div class="ticker-wrap">
+    <div id="ticker-text" class="ticker-move">Loading latest headlines...</div>
+</div>
+
+<div class="category-bar">
+    <div class="cat-tab active-home" id="tab-Home" onclick="renderTab('Home')">🏠 Home</div>
+    <div class="cat-tab" id="tab-Gaming" onclick="renderTab('Gaming')">🎮 Gaming</div>
+    <div class="cat-tab" id="tab-Stocks" onclick="renderTab('Stocks')">📈 Stocks</div>
+    <div class="cat-tab" id="tab-Cars" onclick="renderTab('Cars')">🏎️ Cars</div>
+    <div class="cat-tab" id="tab-Gadgets" onclick="renderTab('Gadgets')">📱 Gadgets</div>
+</div>
+
+<div id="spotlight" class="spotlight-container">
+    <h3 style="margin-top:0; border-left: 4px solid var(--bhaskar-orange); padding-left: 10px;">✨ News Spotlight</h3>
+    <div id="spotlight-grid" class="spotlight-grid">
+        </div>
+</div>
+
+<div id="preface" class="preface-header">
+    <h1 id="preface-title" style="margin:0;">Section Title</h1>
+    <p id="preface-desc" style="margin:5px 0 0;">Detailed insights.</p>
+</div>
+
+<div class="main-container">
+    <main>
+        <h3 id="view-title">Latest Updates</h3>
+        <div id="feed" class="news-grid"></div>
+    </main>
+    <aside>
+        <div style="background:#fff; padding:15px; border-radius:10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <h4 id="trending-title" style="border-bottom: 2px solid var(--bhaskar-orange); padding-bottom: 8px; margin-top:0;">Trending</h4>
+            <ul id="trending-list" style="padding-left: 0; list-style: none; margin:0; font-size: 14px;"></ul>
+        </div>
+    </aside>
+</div>
+
+<div id="admin-modal" class="admin-modal">
+    <h3>Post News</h3>
+    <select id="newsCat">
+        <option value="Home">General News</option>
+        <option value="Gaming">Gaming</option>
+        <option value="Stocks">Stocks</option>
+        <option value="Cars">Cars</option>
+        <option value="Gadgets">Gadgets</option>
+    </select>
+    <input type="text" id="newsTitle" placeholder="Title">
+    <input type="file" id="newsFile" accept="image/*,video/mp4">
+    <textarea id="newsContent" placeholder="Summary" rows="3"></textarea>
+    <button class="admin-btn" style="width:100%" onclick="saveNews()">Publish</button>
+    <button onclick="toggleAdmin()" style="border:none; background:none; color:red; margin-top:8px; cursor:pointer; width:100%;">Close</button>
+</div>
+
+<script>
+    let newsData = JSON.parse(localStorage.getItem('portalNews')) || [];
+    let currentTab = 'Home';
+
+    const tickers = {
+        Home: "Breaking News: Global Markets stable • AI innovations • Climate summit...",
+        Gaming: "PS6 rumors • GTA 6 Trailer leaks • RTX 5090 Release...",
+        Stocks: "Nifty record high • Bitcoin crosses $75k • Fed rates...",
+        Cars: "Tesla Model 3 • Thar 5-Door price • F1 results...",
+        Gadgets: "iPhone 17 Pro • S25 Ultra vs Pixel • Best Smartwatches..."
+    };
+
+    const trendingData = {
+        Home: ["#Breaking", "#Global", "#Weather", "#Local"],
+        Gaming: ["#GTA6", "#PS6Specs", "#RTX5090", "#Sale"],
+        Stocks: ["#Nifty50", "#Bitcoin", "#Tesla", "#Crypto"],
+        Cars: ["#Thar5D", "#EVs", "#F1", "#Supercars"],
+        Gadgets: ["#iPhone17", "#S25U", "#iPad", "#AI"]
+    };
+
+    function updateClock() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        let greeting = "Good Evening";
+        if (hours < 12) greeting = "Good Morning";
+        else if (hours < 17) greeting = "Good Afternoon";
+        document.getElementById('user-greeting').innerText = `${greeting}, Tech Guru!`;
+        document.getElementById('live-time').innerText = `${hours}:${minutes}:${seconds}`;
+    }
+
+    function toggleAdmin() {
+        const modal = document.getElementById('admin-modal');
+        modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
+    }
+
+    function renderTab(category) {
+        currentTab = category;
+        document.querySelectorAll('.cat-tab').forEach(t => t.className = 'cat-tab');
+        document.getElementById(`tab-${category}`).classList.add(`active-${category.toLowerCase()}`);
+        
+        const preface = document.getElementById('preface');
+        const spotlight = document.getElementById('spotlight');
+        const ticker = document.getElementById('ticker-text');
+        const trendingList = document.getElementById('trending-list');
+
+        ticker.innerText = tickers[category] || tickers['Home'];
+        const topics = trendingData[category] || trendingData['Home'];
+        trendingList.innerHTML = topics.map(topic => `<li style="margin-top: 10px; color: #444; font-weight: 500;">${topic}</li>`).join('');
+
+        if(category === 'Home') {
+            preface.style.display = 'none';
+            spotlight.style.display = 'block';
+            renderSpotlight();
+        } else {
+            preface.style.display = 'block';
+            spotlight.style.display = 'none';
+            preface.className = `preface-header bg-${category.toLowerCase()}`;
+            document.getElementById('preface-title').innerText = category + " HUB";
+            document.getElementById('preface-desc').innerText = `Daily ${category} news.`;
+        }
+
+        displayNews(newsData.filter(n => category === 'Home' || n.category === category));
+    }
+
+    function renderSpotlight() {
+        const grid = document.getElementById('spotlight-grid');
+        if(newsData.length < 3) {
+            grid.innerHTML = "<p style='color:#888; font-size:12px;'>Upload 3 news articles to see spotlight.</p>";
+            return;
+        }
+
+        const top3 = newsData.slice(0, 3);
+        const main = top3[0];
+        const side1 = top3[1];
+        const side2 = top3[2];
+
+        grid.innerHTML = `
+            <div class="spotlight-main spotlight-item">
+                ${main.type.includes('video') ? `<video autoplay muted loop src="${main.media}"></video>` : `<img src="${main.media}">`}
+                <div class="spotlight-text">
+                    <span class="spotlight-badge">Main</span>
+                    <h2>${main.title}</h2>
+                </div>
+            </div>
+            <div class="spotlight-side">
+                <div class="spotlight-item">
+                    ${side1.type.includes('video') ? `<video autoplay muted loop src="${side1.media}"></video>` : `<img src="${side1.media}">`}
+                    <div class="spotlight-text">
+                        <h4>${side1.title}</h4>
+                    </div>
+                </div>
+                <div class="spotlight-item">
+                    ${side2.type.includes('video') ? `<video autoplay muted loop src="${side2.media}"></video>` : `<img src="${side2.media}">`}
+                    <div class="spotlight-text">
+                        <h4>${side2.title}</h4>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function displayNews(data) {
+        const feed = document.getElementById('feed');
+        feed.innerHTML = '';
+        data.forEach(item => {
+            const media = item.type.includes('video') ? `<video controls src="${item.media}"></video>` : `<img src="${item.media}">`;
+            feed.innerHTML += `
+                <div class="article-card">
+                    ${media}
+                    <div class="card-body">
+                        <small style="font-weight:bold; color:var(--bhaskar-orange); text-transform:uppercase; font-size:10px;">${item.category}</small>
+                        <h4 style="margin:5px 0;">${item.title}</h4>
+                        <p style="color:#666; font-size:12px;">${item.content.substring(0, 80)}...</p>
+                        <button onclick="deletePost(${item.id})" style="color:red; border:none; background:none; cursor:pointer; font-size:10px;">Remove</button>
+                    </div>
+                </div>`;
+        });
+    }
+
+    function handleSearch() {
+        const term = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = newsData.filter(n => n.title.toLowerCase().includes(term) || n.content.toLowerCase().includes(term));
+        displayNews(filtered);
+    }
+
+    function saveNews() {
+        const pass = prompt("Admin Pass:");
+        if(pass !== "MySecretPassword123") return alert("Denied");
+        const cat = document.getElementById('newsCat').value;
+        const title = document.getElementById('newsTitle').value;
+        const file = document.getElementById('newsFile').files[0];
+        const text = document.getElementById('newsContent').value;
+        if(!file || !title) return alert("Fill data!");
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            newsData.unshift({ id: Date.now(), category: cat, title: title, content: text, media: e.target.result, type: file.type });
+            localStorage.setItem('portalNews', JSON.stringify(newsData));
+            renderTab(cat);
+            toggleAdmin();
+        }
+        reader.readAsDataURL(file);
+    }
+
+    function deletePost(id) {
+        if(confirm("Delete?")) {
+            newsData = newsData.filter(n => n.id !== id);
+            localStorage.setItem('portalNews', JSON.stringify(newsData));
+            renderTab(currentTab);
+        }
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+    renderTab('Home');
+</script>
+</body>
+</html>
